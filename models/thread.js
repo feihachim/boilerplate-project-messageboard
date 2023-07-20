@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 
+const DATE = new Date();
+
 const threadSchema = new mongoose.Schema({
   text: {
     type: String,
@@ -11,20 +13,24 @@ const threadSchema = new mongoose.Schema({
   },
   created_on: {
     type: Date,
-    default: Date.now(),
+    default: DATE,
   },
   bumped_on: {
     type: Date,
-    default: Date.now(),
+    default: DATE,
   },
   reported: {
     type: Boolean,
     default: false,
   },
-  replies: {
-    type: [mongoose.Schema.ObjectId],
-    ref: "Reply",
-    default: [],
+  replies: [
+    {
+      type: Object,
+    },
+  ],
+  board: {
+    type: String,
+    required: true,
   },
 });
 

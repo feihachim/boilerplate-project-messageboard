@@ -9,18 +9,17 @@ const replySchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  thread_id: {
-    type: mongoose.Schema.ObjectId,
-    ref: "Thread",
-    required: true,
-  },
   created_on: {
     type: Date,
-    default: Date.now(),
+    default: new Date(),
   },
   reported: {
     type: Boolean,
     default: false,
+  },
+  thread_id: {
+    type: mongoose.Schema.ObjectId,
+    ref: "Thread",
   },
 });
 

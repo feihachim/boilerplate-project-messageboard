@@ -63,6 +63,19 @@ module.exports = function (app) {
     .delete(function (req, res) {
       const thread_id = req.body.thread_id;
       const delete_password = req.body.delete_password;
+      Thread.findById(thread_id).then((thread) => {
+        if (!thread) {
+          res.send("error no thread");
+          return;
+        }
+        if (delete_password !== thread.delete_password) {
+          res.send("incorrect password");
+        } else {
+          Thread.deleteOne({ _id: thread._id }).then(() => {
+            res.send("success");
+          });
+        }
+      });
     });
 
   app
@@ -130,5 +143,35 @@ module.exports = function (app) {
       }
     })
     .put(function (req, res) {})
-    .delete(function (req, res) {});
+    .delete(function (req, res) {
+      const board = req.params.board;
+      const thread_id = req.body.thread_id;
+      const reply_id = req.body.reply_id;
+      const delete_password = req.body.delete_password;
+      Reply.findOne({ _id: reply_id, thread_id: thread_id }).then((reply) => {
+        if (!reply) {
+          res.send("error no reply");
+          return;
+        }
+        if (delete_password !== reply.delete_password) {
+          res.send("incorrect password");
+        } else {
+          reply.text = "[deleted]";
+          reply.save().then((replyDeleted) => {
+            if (replyDeleted) {
+              Thread.findById(thread_id).then((thread) => {
+                let replyList = thread.replies.filter(
+                  (element) => element._id != reply_id
+                );
+                replyList.push(reply);
+                thread.replies = replyList;
+                thread.save().then((threadUpdated) => {
+                  res.send("success");
+                });
+              });
+            }
+          });
+        }
+      });
+    });
 };

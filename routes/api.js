@@ -49,7 +49,7 @@ module.exports = function (app) {
       try {
         const newThread = new Thread({
           text: text,
-          delete_password: delete_password,
+          delete_password: bcrypt.hashSync(delete_password, saltRounds),
           board: board,
         });
         newThread.save().then((threadSaved) => {
@@ -57,7 +57,7 @@ module.exports = function (app) {
             res.send("error no thread saved");
             return;
           }
-          res.status(303).redirect(`/b/${board}/${threadSaved._id}`);
+          res.send(threadSaved);
         });
       } catch (error) {
         console.log(error);
@@ -91,7 +91,7 @@ module.exports = function (app) {
           res.send("error no thread");
           return;
         }
-        if (delete_password !== thread.delete_password) {
+        if (!bcrypt.compareSync(delete_password, thread.delete_password)) {
           res.send("incorrect password");
         } else {
           Thread.deleteOne({ _id: thread._id }).then(() => {
@@ -141,7 +141,7 @@ module.exports = function (app) {
           const newDate = new Date();
           const newReply = new Reply({
             text: text,
-            delete_password: delete_password,
+            delete_password: bcrypt.hashSync(delete_password, saltRounds),
             created_on: newDate,
             thread_id: thread._id,
           });
@@ -157,8 +157,7 @@ module.exports = function (app) {
                 res.send("error no thread updated");
                 return;
               }
-              res.status(303).redirect(`/b/${board}/${thread._id}`);
-              // res.send(threadUpdated);
+              res.send(newReply);
             });
           });
         });
@@ -209,7 +208,7 @@ module.exports = function (app) {
           res.send("error no reply");
           return;
         }
-        if (delete_password !== reply.delete_password) {
+        if (!bcrypt.compareSync(delete_password, reply.delete_password)) {
           res.send("incorrect password");
         } else {
           reply.text = "[deleted]";

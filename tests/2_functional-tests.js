@@ -7,6 +7,7 @@ chai.use(chaiHttp);
 
 suite("Functional Tests", function () {
   let thread_id;
+  let reply_id;
   test("create a new thread", function (done) {
     chai
       .request(server)
@@ -15,9 +16,8 @@ suite("Functional Tests", function () {
       .end(function (err, res) {
         // thread_id=res.body._id;
         // console.log(res);
-        thread_id =
-          res.redirects[0].split("/")[res.redirects[0].split("/").length - 1];
-        console.log("thread id = ", thread_id);
+        thread_id = res.body._id;
+        //console.log("thread id = ", thread_id);
         assert.equal(res.status, 200);
         done();
       });
@@ -54,8 +54,7 @@ suite("Functional Tests", function () {
       .post("/api/threads/test")
       .send({ text: "to be deleted", delete_password: "delete" })
       .end(function (err, res) {
-        thread_id =
-          res.redirects[0].split("/")[res.redirects[0].split("/").length - 1];
+        thread_id = res.body._id;
         chai
           .request(server)
           .delete("/api/threads/test")
@@ -67,21 +66,146 @@ suite("Functional Tests", function () {
       });
   });
   test("report a thread", function (done) {
-    done();
+    chai
+      .request(server)
+      .post("/api/threads/test")
+      .send({ text: "random text", delete_password: "delete mel" })
+      .end(function (err, res) {
+        thread_id = res.body._id;
+        chai
+          .request(server)
+          .put("/api/threads/test")
+          .send({ thread_id: thread_id })
+          .end(function (err, res) {
+            assert.equal(res.text, "reported");
+            done();
+          });
+      });
   });
   test("create a new reply", function (done) {
-    done();
+    chai
+      .request(server)
+      .get("/api/threads/test")
+      .end(function (err, res) {
+        thread_id = res.body[0]._id;
+        chai
+          .request(server)
+          .post("/api/replies/test")
+          .send({
+            text: "reply test",
+            delete_password: "delete reply",
+            thread_id: thread_id,
+          })
+          .end(function (err, res) {
+            assert.equal(res.body.text, "reply test");
+            done();
+          });
+      });
   });
   test("view a single thread with all replies", function (done) {
-    done();
+    chai
+      .request(server)
+      .get("/api/threads/test")
+      .end(function (err, res) {
+        thread_id = res.body[0]._id;
+        chai
+          .request(server)
+          .get("/api/replies/test")
+          .query({ thread_id: thread_id })
+          .end(function (err, res) {
+            assert.isArray(res.body.replies);
+            assert.equal(res.status, 200);
+            done();
+          });
+      });
   });
   test("delete a reply with incorrect password", function (done) {
-    done();
+    chai
+      .request(server)
+      .get("/api/threads/test")
+      .end(function (err, res) {
+        thread_id = res.body[0]._id;
+        chai
+          .request(server)
+          .post("/api/replies/test")
+          .send({
+            text: "random text 145",
+            delete_password: "delete",
+            thread_id: thread_id,
+          })
+          .end(function (err, res) {
+            reply_id = res.body._id;
+            chai
+              .request(server)
+              .delete("/api/replies/test")
+              .send({
+                thread_id: thread_id,
+                reply_id: reply_id,
+                delete_password: "wrong",
+              })
+              .end(function (err, res) {
+                assert.equal(res.text, "incorrect password");
+                done();
+              });
+          });
+      });
   });
   test("delete a reply with correct password", function (done) {
-    done();
+    chai
+      .request(server)
+      .get("/api/threads/test")
+      .end(function (err, res) {
+        thread_id = res.body[0]._id;
+        chai
+          .request(server)
+          .post("/api/replies/test")
+          .send({
+            text: "random text 146",
+            delete_password: "delete",
+            thread_id: thread_id,
+          })
+          .end(function (err, res) {
+            reply_id = res.body._id;
+            chai
+              .request(server)
+              .delete("/api/replies/test")
+              .send({
+                thread_id: thread_id,
+                reply_id: reply_id,
+                delete_password: "delete",
+              })
+              .end(function (err, res) {
+                assert.equal(res.text, "success");
+                done();
+              });
+          });
+      });
   });
   test("report a reply", function (done) {
-    done();
+    chai
+      .request(server)
+      .get("/api/threads/test")
+      .end(function (err, res) {
+        thread_id = res.body[0]._id;
+        chai
+          .request(server)
+          .post("/api/replies/test")
+          .send({
+            text: "random text 3",
+            delete_password: "delete",
+            thread_id: thread_id,
+          })
+          .end(function (err, res) {
+            reply_id = res.body._id;
+            chai
+              .request(server)
+              .put("/api/replies/test")
+              .send({ thread_id: thread_id, reply_id: reply_id })
+              .end(function (err, res) {
+                assert.equal(res.text, "reported");
+                done();
+              });
+          });
+      });
   });
 });

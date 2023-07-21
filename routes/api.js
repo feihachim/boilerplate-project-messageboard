@@ -1,7 +1,11 @@
 "use strict";
 
+const bcrypt = require("bcrypt");
+
 const Thread = require("../models/thread");
 const Reply = require("../models/reply");
+
+const saltRounds = 10;
 
 module.exports = function (app) {
   app
@@ -53,13 +57,32 @@ module.exports = function (app) {
             res.send("error no thread saved");
             return;
           }
-          res.status(303).redirect(`/b/${board}`);
+          res.status(303).redirect(`/b/${board}/${threadSaved._id}`);
         });
       } catch (error) {
         console.log(error);
       }
     })
-    .put(function (req, res) {})
+    .put(function (req, res) {
+      const board = req.params.board;
+      const thread_id = req.body.thread_id;
+      try {
+        Thread.findOne({ board: board, _id: thread_id }).then((thread) => {
+          if (!thread) {
+            res.send("error no thread");
+            return;
+          }
+          thread.reported = true;
+          thread.save().then((threadUpdated) => {
+            if (threadUpdated) {
+              res.send("reported");
+            }
+          });
+        });
+      } catch (error) {
+        console.log(error);
+      }
+    })
     .delete(function (req, res) {
       const thread_id = req.body.thread_id;
       const delete_password = req.body.delete_password;
@@ -135,6 +158,7 @@ module.exports = function (app) {
                 return;
               }
               res.status(303).redirect(`/b/${board}/${thread._id}`);
+              // res.send(threadUpdated);
             });
           });
         });
@@ -142,7 +166,39 @@ module.exports = function (app) {
         console.log(error);
       }
     })
-    .put(function (req, res) {})
+    .put(function (req, res) {
+      const board = req.params.board;
+      const thread_id = req.body.thread_id;
+      const reply_id = req.body.reply_id;
+      try {
+        Reply.findOne({ _id: reply_id, thread_id: thread_id }).then((reply) => {
+          if (!reply) {
+            res.send("no reply");
+            return;
+          }
+          reply.reported = true;
+          Thread.findOne({ _id: thread_id, board: board }).then((thread) => {
+            if (!thread) {
+              res.send("error no thread");
+              return;
+            }
+            thread.bumped_on = new Date();
+            let replyList = thread.replies.filter(
+              (element) => element._id !== reply_id
+            );
+            replyList.push(reply);
+            thread.replies = replyList;
+            thread.save().then((threadUpdated) => {
+              if (threadUpdated) {
+                res.send("reported");
+              }
+            });
+          });
+        });
+      } catch (error) {
+        console.log(error);
+      }
+    })
     .delete(function (req, res) {
       const board = req.params.board;
       const thread_id = req.body.thread_id;
